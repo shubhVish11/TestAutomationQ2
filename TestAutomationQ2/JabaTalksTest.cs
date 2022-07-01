@@ -1,4 +1,5 @@
-﻿using Microsoft.VisualStudio.TestTools.UnitTesting;
+﻿using ActiveUp.Net.Mail;
+using Microsoft.VisualStudio.TestTools.UnitTesting;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
 using OpenQA.Selenium.Support.UI;
@@ -9,7 +10,7 @@ using System.Linq;
 namespace TestAutomationQ2
 {
     [TestClass]
-    public class JabaTalksTest
+    public class JabaTalksTest:EmailHelper
     {
 
         IWebDriver driver;
@@ -108,6 +109,34 @@ namespace TestAutomationQ2
 
         }
 
+
+        [DataRow("Shubham Vishwakarma", "Shubham", "shubham@gmail.com", "Passord@W123")]
+        [TestMethod]
+        public void ValidateEmailConfimationSignUp(string name, string organization, string email, string password)
+        {
+            try
+            {
+                EnterLoginDetails(name, organization, email);
+                driver.FindElement(By.XPath("//input[@type='checkbox']/following::span[contains(text(),'I agree to the')]")).Click();
+                driver.FindElement(By.XPath("//button[@type='submit' and text()='Get Started']")).Click();
+                var wait = new WebDriverWait(driver, TimeSpan.FromSeconds(5));
+                wait.Until(ExpectedConditions.ElementExists(By.XPath("//span[contains(text(),' A welcome email has been sent. Please check your email. ')]")));
+                if (ReadImap(email, password))
+                {
+                    Assert.IsTrue(true);
+                }
+                else
+                    Assert.Fail();
+
+
+            }
+            catch (Exception e)
+            {
+
+            }
+
+        }
+
         [TestMethod]
         public void ValidateTermsAndConditionLink()
         {
@@ -132,6 +161,7 @@ namespace TestAutomationQ2
 
         }
 
+
         public void EnterLoginDetails(string name, string org, string email)
         {
             try
@@ -144,6 +174,31 @@ namespace TestAutomationQ2
             {
 
             }
+        }
+
+        
+        public bool ReadImap(string emailid,string pwd)
+        {
+            var mailRepository = new MailRepository(
+                                    "imap.gmail.com",
+                                    993,
+                                    true,
+                                    emailid,
+                                    pwd
+                                );
+
+            var emailList = mailRepository.GetAllMails("inbox");
+            bool value = false;
+            foreach (Message email in emailList)
+            {
+                Console.WriteLine("<p>{0}: {1}</p><p>{2}</p>", email.From, email.Subject, email.BodyHtml.Text);
+                if(email.Subject.Contains("Please Comeplete JabaTalks Account"))
+                {
+                    value = true;break;
+                }
+                    
+            }
+            return true;
         }
 
         [TestCleanup]
